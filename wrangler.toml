@@ -1,0 +1,11 @@
+name = "portfolio-ai-chat"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# Setelah deploy pertama kali, Worker kamu bisa diakses di:
+#   https://portfolio-ai-chat.<subdomain-cloudflare-kamu>.workers.dev
+# atau kalau kamu pasang custom route/domain, sesuaikan di sini.
+
+# [routes]
+# pattern = "api.namadomainkamu.com/*"
+# zone_name = "namadomainkamu.com"
