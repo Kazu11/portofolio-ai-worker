@@ -2,20 +2,6 @@ name = "portfolio-ai-chat"
 main = "src/index.js"
 compatibility_date = "2025-01-01"
 
-# Setelah deploy pertama kali (lewat Cloudflare Workers Builds atau `wrangler deploy`),
-# Worker kamu bisa diakses di:
-#   https://portfolio-ai-chat.<subdomain-cloudflare-kamu>.workers.dev
-#
-# Kalau nanti mau pasang custom domain (misal api.abdullahfaqih.web.id) DAN domain
-# abdullahfaqih.web.id sudah dikelola DNS-nya di Cloudflare, aktifkan bagian di bawah:
-#
-[routes]
+[[routes]]
 pattern = "api.abdullahfaqih.web.id/v1*"
-zone_name = "abdullahfaqih.web.id"
-
-# Secrets (GEMINI_API_KEY, ANTHROPIC_API_KEY) TIDAK ditulis di sini.
-# Kalau pakai Workers Builds (Git integration): set lewat Dashboard
-#   -> Worker -> Settings -> Variables and Secrets
-# Kalau deploy manual dari laptop:
-#   wrangler secret put GEMINI_API_KEY
-#   wrangler secret put ANTHROPIC_API_KEY
+zone_name = "api.abdullahfaqih.web.id"
