@@ -11,7 +11,7 @@ compatibility_date = "2025-01-01"
 #
 [routes]
 pattern = "api.abdullahfaqih.web.id/v1*"
-zone_name = ".abdullahfaqih.web.id"
+zone_name = "abdullahfaqih.web.id"
 
 # Secrets (GEMINI_API_KEY, ANTHROPIC_API_KEY) TIDAK ditulis di sini.
 # Kalau pakai Workers Builds (Git integration): set lewat Dashboard
