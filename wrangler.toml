@@ -9,9 +9,9 @@ compatibility_date = "2025-01-01"
 # Kalau nanti mau pasang custom domain (misal api.abdullahfaqih.web.id) DAN domain
 # abdullahfaqih.web.id sudah dikelola DNS-nya di Cloudflare, aktifkan bagian di bawah:
 #
-[routes]
-pattern = "*api.abdullahfaqih.web.id/v1*"
-zone_name = "abdullahfaqih.web.id"
+[[routes]]
+pattern = "api.abdullahfaqih.web.id/v1*"
+zone_name = "api.abdullahfaqih.web.id"
 
 # Secrets (GEMINI_API_KEY, ANTHROPIC_API_KEY) TIDAK ditulis di sini.
 # Kalau pakai Workers Builds (Git integration): set lewat Dashboard
