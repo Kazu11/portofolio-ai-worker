@@ -2,16 +2,22 @@
 // Cloudflare Worker: POST /  { "question": "..." }
 //
 // Routing logic:
-//   - Pertanyaan pendek/umum/santai           -> Gemini 2.5 Flash (cepat, murah)
-//   - Pertanyaan panjang/spesifik/profesional -> Claude Sonnet (presisi tinggi)
+//   - Pertanyaan pendek/umum/santai           -> Gemini Flash (cepat, gratis di free tier)
+//   - Pertanyaan panjang/spesifik/profesional -> Claude Sonnet (presisi tinggi, berbayar)
+//   - Kalau Claude gagal (limit/credit habis/error) -> fallback otomatis ke Gemini
+//     supaya widget tidak error total di frontend.
 //
 // API key TIDAK PERNAH dikirim ke browser - disimpan sebagai Worker Secret
 // (lihat README, bagian "Set secrets").
 
 import { PROFILE_CONTEXT } from "./profile.js";
 
-// GANTI dengan domain GitHub Pages kamu, misal "https://kazu11.github.io"
-const ALLOWED_ORIGIN = "https://abdullahfaqih.web.id";
+// GANTI/lengkapi sesuai domain yang benar-benar men-serve widget chat kamu.
+// Boleh lebih dari satu kalau situs bisa diakses dari beberapa domain.
+const ALLOWED_ORIGINS = [
+  "https://abdullahfaqih.web.id",
+  "https://kazu11.github.io",
+];
 
 // -------------------------------------------------------------------------
 // 1. ROUTING: tentukan model mana yang dipakai
@@ -89,27 +95,54 @@ async function askClaudeSonnet(question, env) {
 }
 
 // -------------------------------------------------------------------------
-// 4. HANDLER UTAMA (Cloudflare Worker export default fetch)
+// 4. JAWAB PERTANYAAN + FALLBACK
+// -------------------------------------------------------------------------
+async function answerQuestion(question, env) {
+  const useHighPrecision = shouldUseHighPrecisionModel(question);
+
+  if (!useHighPrecision) {
+    // Jalur normal: langsung Gemini
+    const answer = await askGeminiFlash(question, env);
+    return { answer, modelUsed: "gemini-flash" };
+  }
+
+  // Jalur presisi tinggi: coba Claude dulu, kalau gagal (limit/credit/error) -> fallback ke Gemini
+  try {
+    const answer = await askClaudeSonnet(question, env);
+    return { answer, modelUsed: "claude-sonnet-5" };
+  } catch (err) {
+    console.error("Claude gagal, fallback ke Gemini:", err);
+    const answer = await askGeminiFlash(question, env);
+    return { answer, modelUsed: "gemini-flash (fallback)" };
+  }
+}
+
+// -------------------------------------------------------------------------
+// 5. HANDLER UTAMA (Cloudflare Worker export default fetch)
 // -------------------------------------------------------------------------
 function corsHeaders(origin) {
-     const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
-     return {
-       "Access-Control-Allow-Origin": allowed,
-       "Access-Control-Allow-Methods": "POST, OPTIONS",
-       "Access-Control-Allow-Headers": "Content-Type",
-     };
-   }
+  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowed,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Vary": "Origin",
+  };
+}
 
 export default {
   async fetch(request, env) {
+    const origin = request.headers.get("Origin") || "";
+    const headers = corsHeaders(origin);
+
     if (request.method === "OPTIONS") {
-      return new Response(null, { headers: corsHeaders() });
+      return new Response(null, { headers });
     }
 
     if (request.method !== "POST") {
       return new Response(JSON.stringify({ error: "Method not allowed" }), {
         status: 405,
-        headers: { "Content-Type": "application/json", ...corsHeaders() },
+        headers: { "Content-Type": "application/json", ...headers },
       });
     }
 
@@ -124,29 +157,21 @@ export default {
     if (!question || typeof question !== "string" || !question.trim()) {
       return new Response(
         JSON.stringify({ error: "Field 'question' wajib diisi" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders() } }
+        { status: 400, headers: { "Content-Type": "application/json", ...headers } }
       );
     }
 
-    const useHighPrecision = shouldUseHighPrecisionModel(question);
-
     try {
-      const answer = useHighPrecision
-        ? await askClaudeSonnet(question, env)
-        : await askGeminiFlash(question, env);
-
-      return new Response(
-        JSON.stringify({
-          answer,
-          modelUsed: useHighPrecision ? "claude-sonnet-5" : "gemini-flash",
-        }),
-        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders() } }
-      );
+      const result = await answerQuestion(question, env);
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...headers },
+      });
     } catch (err) {
       console.error(err);
       return new Response(
         JSON.stringify({ error: "Gagal mendapatkan jawaban dari AI." }),
-        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders() } }
+        { status: 500, headers: { "Content-Type": "application/json", ...headers } }
       );
     }
   },
