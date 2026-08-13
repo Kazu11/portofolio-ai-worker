@@ -11,7 +11,7 @@
 import { PROFILE_CONTEXT } from "./profile.js";
 
 // GANTI dengan domain GitHub Pages kamu, misal "https://kazu11.github.io"
-const ALLOWED_ORIGIN = "https://kazu11.github.io";
+const ALLOWED_ORIGIN = "https://abdullahfaqih.web.id";
 
 // -------------------------------------------------------------------------
 // 1. ROUTING: tentukan model mana yang dipakai
@@ -91,13 +91,14 @@ async function askClaudeSonnet(question, env) {
 // -------------------------------------------------------------------------
 // 4. HANDLER UTAMA (Cloudflare Worker export default fetch)
 // -------------------------------------------------------------------------
-function corsHeaders() {
-  return {
-    "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-  };
-}
+function corsHeaders(origin) {
+     const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+     return {
+       "Access-Control-Allow-Origin": allowed,
+       "Access-Control-Allow-Methods": "POST, OPTIONS",
+       "Access-Control-Allow-Headers": "Content-Type",
+     };
+   }
 
 export default {
   async fetch(request, env) {
